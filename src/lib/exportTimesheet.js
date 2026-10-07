@@ -4,8 +4,13 @@ import {
 } from 'docx';
 
 const FONT = 'Calibri';
-const SIZE = 20; // 10pt (satuan half-point)
-const COLS = [1296, 4516, 1276, 1188, 1350]; // total 9626 DXA (lebar area cetak A4 dengan margin 1")
+const SIZE = 22; // 11pt (satuan half-point)
+const COLS = [1296, 4516, 1276, 1188, 2071]; // total 10347 DXA (sama dengan tabel di file asli)
+const TABLE_W = COLS.reduce((a, b) => a + b, 0);
+const TEXT_W = 11906 - 2 * 1440; // lebar area tulis A4 dengan margin Normal = 9026
+// Tabel dibuat lebih lebar dari area tulis dan digeser ke kiri separuh selisihnya,
+// sehingga jarak kiri dan kanan tabel ke tepi kertas sama (+/- 1,4 cm). Margin halaman tetap Normal.
+const TABLE_INDENT = -Math.round((TABLE_W - TEXT_W) / 2); // -661
 const line = { style: BorderStyle.SINGLE, size: 4, color: '000000' };
 const BORDERS = { top: line, bottom: line, left: line, right: line };
 
@@ -20,7 +25,7 @@ function cell(text, i, o = {}) {
     children: [
       new Paragraph({
         alignment: o.center ? AlignmentType.CENTER : AlignmentType.LEFT,
-        children: [run(text, { bold: o.bold, color: o.color })],
+        children: [run(text, { bold: o.bold, color: '000000' })],
       }),
     ],
   });
@@ -38,7 +43,7 @@ export async function buildTimesheetBlob(rows) {
   });
 
   const body = rows.map((r) => {
-    const o = isHoliday(r) ? { fill: 'FF0000', color: 'FFFFFF' } : {};
+    const o = isHoliday(r) ? { fill: 'FF0000' } : {};
     return new TableRow({
       cantSplit: true,
       children: [
@@ -58,7 +63,8 @@ export async function buildTimesheetBlob(rows) {
       },
       children: [
         new Table({
-          width: { size: COLS.reduce((a, b) => a + b, 0), type: WidthType.DXA },
+          width: { size: TABLE_W, type: WidthType.DXA },
+          indent: { size: TABLE_INDENT, type: WidthType.DXA },
           columnWidths: COLS,
           rows: [header, ...body],
         }),
